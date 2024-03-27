@@ -2,7 +2,7 @@ from flask import Flask, g
 from flask_restful import Resource, Api, reqparse
 import sqlite3
 
-DATABASE = 'trabalho_victor/trabalho1_victor/bd_trabalho_victor.db'
+DATABASE = 'bd_trabalho_victor.db'
 
 app = Flask(__name__)
 api = Api(app)
@@ -43,7 +43,7 @@ class CriarEnquete(Resource):
         parser.add_argument('opcoes', type=dict, action='append', required=True, help="Deve haver pelo menos uma opção de voto.")
         args = parser.parse_args()
 
-        enquete_id = query_db('INSERT INTO Enquete (titulo, descricao) VALUES (?, ?)',
+        enquete_id = query_db('INSERT INTO Enquete (enquete_titulo, descricao) VALUES (?, ?)',
                               [args['titulo'], args.get('descricao', '')], modify=True)
         
         for opcao in args['opcoes']:
@@ -55,9 +55,9 @@ class CriarEnquete(Resource):
 class Enquete(Resource):
     def get(self, id=None):
         if id:
-            enquete = query_db('SELECT * FROM Enquete WHERE id = 1', [id], one=True)
+            enquete = query_db('SELECT * FROM Enquete WHERE enquete_id = ?', [id], one=True)
             if enquete:
-                opcoes = query_db('SELECT * FROM Opcao WHERE enquete_id = 1', [id], one=False)
+                opcoes = query_db('SELECT * FROM Opcao WHERE enquete_id = ?', [id], one=False)
                 enquete['opcoes'] = opcoes
                 return enquete
             return {'mensagem': 'Enquete não encontrada'}, 404
@@ -66,13 +66,13 @@ class Enquete(Resource):
             return enquetes
 
     def delete(self, id):
-        query_db('DELETE FROM Opcao WHERE enquete_id = 11', [id], modify=True)
-        query_db('DELETE FROM Enquete WHERE id = 11', [id], modify=True)
+        query_db('DELETE FROM Opcao WHERE enquete_id = ?', [id], modify=True)
+        query_db('DELETE FROM Enquete WHERE enquete_id = ?', [id], modify=True)
         return {'mensagem': 'Enquete deletada com sucesso.'}
 
 class OpcoesEnquete(Resource):
     def get(self, id):
-        opcoes = query_db('SELECT * FROM Opcao WHERE enquete_id = 1', [id], one=False)
+        opcoes = query_db('SELECT * FROM Opcao WHERE enquete_id = ?', [id], one=False)
         if opcoes:
             return opcoes
         return {'mensagem': 'Enquete não encontrada ou sem opções'}, 404
@@ -92,7 +92,7 @@ class Votar(Resource):
         parser.add_argument('opcao_id', required=True, help="ID da opção é necessário.")
         args = parser.parse_args()
 
-        query_db('UPDATE Opcao SET votos = votos + 1 WHERE id = ? AND enquete_id = ?', [args['opcao_id'], id], modify=True)
+        query_db('UPDATE Opcao SET votos = votos + 1 WHERE opcao_id = ? AND enquete_id = ?', [args['opcao_id'], id], modify=True)
         
         return {'mensagem': 'Voto registrado com sucesso.'}
 
@@ -104,8 +104,8 @@ class Resultados(Resource):
         return {'mensagem': 'Enquete não encontrada ou sem opções'}, 404
 
 class DeletarOpcao(Resource):
-    def delete(self, id_enquete, id_opcao):
-        query_db('DELETE FROM Opcao WHERE id = ? AND enquete_id = ?', [id_opcao, id_enquete], modify=True)
+    def delete(self, enquete_id, opcao_id):
+        query_db('DELETE FROM Opcao WHERE opcao_id = ? AND enquete_id = ?', [opcao_id, enquete_id], modify=True)
         return {'mensagem': 'Opção deletada com sucesso.'}
 
 api.add_resource(CriarEnquete, '/api/enquetes')
@@ -117,4 +117,3 @@ api.add_resource(DeletarOpcao, '/api/enquetes/<string:id_enquete>/opcoes/<string
 
 if __name__ == '__main__':
     app.run(debug=True)
-
